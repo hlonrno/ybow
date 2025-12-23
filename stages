@@ -1,0 +1,6 @@
+file [char] read ->
+lexer [token] tokenize ->
+2nd stage lexer [tokenLiteral] literalize ->
+parser AST parse ->
+checker AST check -> // type checks
+interpreter (stdout, stderr) eval

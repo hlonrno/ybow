@@ -1,0 +1,1 @@
+gcc -Wall -Wextra -std=c99 -pedantic -Wno-pointer-arith -ggdb -o exe src/main.c && ./exe main.yb

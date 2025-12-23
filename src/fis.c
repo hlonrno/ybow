@@ -53,11 +53,13 @@ void fis_close(FIS *fis) {
     fis->closed = true;
 }
 
-bool fis_read_byte(FIS *fis, char *b) {
-    if (fis->closed)
+bool fis_read_byte(FIS *fis, char *c) {
+    if (fis->closed) {
+        *c = '\0';
         return true;
+    }
 
-    *b = fis->buf[fis->bufi++];
+    *c = fis->buf[fis->bufi++];
     if (fis->bufi >= fis->buf_len) {
         fis->buf_len = fread(fis->buf, 1, fis->buf_len, fis->file);
         fis->bufi = 0;

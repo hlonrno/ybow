@@ -37,6 +37,8 @@ typedef struct {
 
 bool lex_init(Lexer *lex, FIS *fis) {
     lex->fis = fis;
+    lex->ctok.end_line = 1;
+    lex->ctok.end = 1;
     return fis_read_byte(fis, &lex->cc);
 }
 
@@ -47,197 +49,177 @@ bool lex_init(Lexer *lex, FIS *fis) {
     || c == '\r'         \
     || c == '\b')
 
-#define safe_advance { if (fis_read_byte(lex->fis, &lex->cc)) goto err; ++lex->ctok.end; }
+#define safe_advance                       \
+    ++lex->ctok.end;                       \
+    if (fis_read_byte(lex->fis, &lex->cc))
 
+#define SYMBOWLS ";@=:|<->()_?.#,[{]}+%&^~!*/"
+#define NUMBERS "0123456789"
+#define HEX NUMBERS"abcdefABCDEF"
+ 
 void lex_get_token(Lexer *lex) {
     if (lex->fis->closed)
         return;
 
+    lex->res.err = false;
+    lex->res.res = false;
     while (!lex->fis->closed) {
         if (lex->cc == '\n') {
             ++lex->ctok.end_line;
             lex->ctok.end = 0;
+            safe_advance return;
         }
         if (!is_whitespace(lex->cc))
             break;
-        safe_advance;
+        safe_advance return;
     }
 
     lex->ctok.begin = lex->ctok.end;
     lex->ctok.line = lex->ctok.end_line;
     if (lex->cc == '`') {
+        safe_advance return;
         lex->ctok.type = CharacterLiteral;
-        safe_advance;
-        if (lex->cc == '\n') {
+        if (strchr("\n\t\r\b", lex->cc)) {
             lex->res.err = true;
-            lex->res.err_message = "character `\\n` not allowed in character expresions.";
-        }
-        if (lex->cc != '\\') {
-            lex->ctok.value = malloc(sizeof(lex->cc) << 1);
-            lex->ctok.value[0] = lex->cc;
-            lex->ctok.value[1] = '\0';
-            lex->res.res = true;
-            safe_advance;
+            lex->res.err_message = "characters \"\\n\\t\\b\\r\" not allowed in character expresions.";
             return;
-        } else {
-            // ESC SEQ
-            safe_advance;
-            const char *chars = "nrtb1234567890abcdefABCDEFxo";
+        }
+
+        if (lex->cc == '\\') {
+            char chr = '\\';
             vec_new(v, sizeof(char));
-            char chr;
-            chr = '\\';
             vec_add(&v, &chr);
-            while (strchr(chars, lex->cc)) {
+            safe_advance return;
+            bool skip = false;
+            if (strchr("nrtbxo", lex->cc)) {
                 vec_add(&v, &lex->cc);
-                safe_advance;
+                skip = lex->cc != 'x' || lex->cc != 'o';
+                safe_advance {}
             }
+            if (!skip)
+                while (strchr(HEX, lex->cc)) {
+                    vec_add(&v, &lex->cc);
+                    safe_advance return;
+                }
             chr = '\0';
             vec_add(&v, &chr);
             vec_shrink(&v);
             lex->ctok.value = v.data;
-            lex->res.res = true;
-            return;
+        } else {
+            lex->ctok.value    = malloc(2);
+            lex->ctok.value[0] = lex->cc;
+            lex->ctok.value[1] = '\0';
+            safe_advance {}
         }
-    } else if (lex->cc == '"') {
+        lex->res.res = true;
+        return;
+    }
+
+    if (lex->cc == '"') {
+        safe_advance return;
         lex->ctok.type = StringLiteral;
-        safe_advance;
         bool multiline = lex->cc == '\n';
-        // TODO: include begining \n or not
-        if (multiline) {
-            ++lex->ctok.end_line;
-            safe_advance;
-        }
         vec_new(v, sizeof(char));
+
         while (lex->cc != '"') {
             if (lex->cc == '\\') {
                 vec_add(&v, &lex->cc);
-                safe_advance;
+                safe_advance break;
             }
             if (lex->cc == '\n') {
                 ++lex->ctok.end_line;
                 if (!multiline) {
                     lex->res.err = true;
-                    lex->res.err_message = "this string is not multiline!";
+                    lex->res.err_message = "string is not multiline.";
                     return;
                 }
             }
             vec_add(&v, &lex->cc);
-            safe_advance;
+            safe_advance break;
         }
+
         char chr = '\0';
         vec_add(&v, &chr);
         vec_shrink(&v);
         lex->ctok.value = v.data;
         lex->res.res = true;
-        safe_advance;
-    } else {
-        lex->res.err = true;
-        lex->res.err_message = "unexpected character.";
+        safe_advance {}
         return;
     }
 
-    // TODO: NumberLiteral
-    // CharacterLiteral
-    // StringLiteral
-    // TODO: IdentifierLiteral 
-err:
-    lex->res.err = true;
-}
-
-/*
-ErrRes tokenize(FIS *fis) {
-    char c;
-    Token tok = {0};
-    vec_new(toks, sizeof(Token));
-    tok.end_line = 1;
-    fis_read_byte(fis, &c);
-    while (!fis->closed) {
-        if (c == '\n') {
-            ++tok.end_line;
-            tok.end = 0;
-            safe_advance;
-            continue;
+    if (strchr(NUMBERS, lex->cc)) {
+        lex->ctok.type = NumberLiteral;
+        vec_new(v, sizeof(char));
+        char dot_count = 0;
+        while (strchr(NUMBERS".", lex->cc)) {
+            if (lex->cc == '.') {
+                ++dot_count;
+                if (dot_count > 1)
+                    break;
+            }
+            vec_add(&v, &lex->cc);
+            safe_advance break;
         }
-        if (is_whitespace(c)) {
-            safe_advance;
-            continue;
+        if (dot_count < 2) {
+            if (lex->cc == 'u' || lex->cc == 'U') {
+                vec_add(&v, &lex->cc);
+                safe_advance {}
+            }
+            if (strchr("flFL", lex->cc)) {
+                vec_add(&v, &lex->cc);
+                safe_advance {}
+            }
         }
 
-        tok.begin = tok.end;
-        tok.line = tok.end_line;
-        if (c == '`') {
-            tok.type = CharacterLiteral;
-            safe_advance;
-            if (c == '\n') {
-                return err("character `\\n` not allowed in character expresions.");
-            }
-            if (c != '\\') {
-                tok.value = malloc(sizeof(c) << 1);
-                tok.value[0] = c;
-                tok.value[1] = '\0';
-                vec_add(&toks, &tok);
-                safe_advance;
-            } else {
-                // ESC SEQ
-                safe_advance;
-                const char *chars = "nrtb1234567890abcdefABCDEFxo";
-                vec_new(v, sizeof(char));
-                char chr;
-                chr = '\\';
-                vec_add(&v, &chr);
-                while (strchr(chars, c)) {
-                    vec_add(&v, &c);
-                    safe_advance;
-                }
-                chr = '\0';
-                vec_add(&v, &chr);
-                vec_shrink(&v);
-                tok.value = v.data;
-                vec_add(&toks, &tok);
-            }
-        } else if (c == '"') {
-            tok.type = StringLiteral;
-            safe_advance;
-            bool multiline = c == '\n';
-            // TODO: include begining \n or not
-            if (multiline) {
-                ++tok.end_line;
-                safe_advance;
-            }
-            vec_new(v, sizeof(char));
-            while (c != '"') {
-                if (c == '\\') {
-                    vec_add(&v, &c);
-                    safe_advance;
-                }
-                if (c == '\n') {
-                    ++tok.end_line;
-                    if (!multiline) {
-                        return err("this string is not multiline!");
-                    }
-                }
-                vec_add(&v, &c);
-                safe_advance;
-            }
-            char chr = '\0';
-            vec_add(&v, &chr);
-            vec_shrink(&v);
-            tok.value = v.data;
-            vec_add(&toks, &tok);
-            safe_advance;
-        } else {
-            return err("unexpected character.");
-        }
-
-        // TODO: NumberLiteral
-        // CharacterLiteral
-        // StringLiteral
-        // TODO: IdentifierLiteral 
+        dot_count = '\0';
+        vec_add(&v, &dot_count);
+        vec_shrink(&v);
+        lex->ctok.value = v.data;
+        lex->res.res = true;
+        return;
     }
-    return (ErrResult) { .tokens = toks };
+
+    bool ran = false;
+    vec_new(v, sizeof(char));
+    while (strchr(SYMBOWLS, lex->cc)) {
+        ran = true;
+        vec_add(&v, &lex->cc);
+        safe_advance break;
+    }
+    if (ran) {
+        lex->ctok.type = SpecialCharacter;
+        char chr = '\0';
+        vec_add(&v, &chr);
+        vec_shrink(&v);
+        lex->ctok.value = v.data;
+        lex->res.res = true;
+        return;
+    }
+
+    while (!strchr(NUMBERS"`\""SYMBOWLS" \n\t\r\b", lex->cc)) {
+        ran = true;
+        vec_add(&v, &lex->cc);
+        safe_advance break;
+    }
+    if (ran) {
+        lex->ctok.type = IdentifierLiteral;
+        char chr = '\0';
+        vec_add(&v, &chr);
+        vec_shrink(&v);
+        lex->ctok.value = v.data;
+        lex->res.res = true;
+        return;
+    }
+
+    free(v.data);
+    lex->res.err = true;
+    lex->res.err_message = "unexpected character. (wtf??\?)";
+    safe_advance {}
 }
-*/
+
 #undef safe_advance
-#undef err
 #undef is_whitespace
+#undef SYMBOWLS
+#undef NUMBERS
+#undef HEX
 #endif // LEXER_C

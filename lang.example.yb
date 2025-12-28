@@ -1,0 +1,41 @@
+interface List<T> {
+    .size() u32;
+}
+
+interface ReadableList<T> ++ List<T> {
+    .get(i: u32) T;
+}
+
+interface WritableList<T> ++ List<T> {
+    .set(i: u32, val: T);
+    .add(i: u32, val: T);
+    .remove(i: u32) T;
+}
+
+class ArrayList<T> {
+    -.data: [T];
+    -.len: u32 = 8;
+    -.capacity = 32;
+}
+
+implement ArrayList<T> {
+    .() {
+        data = new [T; capacity];
+    }
+
+    .(initial_capacity: u32) {
+        assert initial_capacity > 0
+        else "ArrayList capacity must be greater than 0.";
+        capacity = initial_capacity;
+        this();
+    }
+}
+
+implement List<T> for ArrayList<T> {
+    .size() u32 {
+        return .len;
+    }
+}
+
+final list = new ArrayList<T>;
+

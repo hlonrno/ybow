@@ -1,225 +1,259 @@
 #ifndef LEXER_C
 #define LEXER_C
-#include "vec.c"
+#include <string.h>
+#include "std.c"
 #include "fis.c"
-#include <stdbool.h>
-#include <stdlib.h>
 
 typedef enum {
-    SpecialCharacter,
-    NumberLiteral,
-    CharacterLiteral,
+    SpecialChar,
+    Identifier,
     StringLiteral,
-    IdentifierLiteral
+    CharLiteral,
+    IntLiteral,
+    FloatLiteral,
 } TokenType;
 
 typedef struct {
     TokenType type;
-    char *value;
-    size_t line;
-    size_t end_line;
-    size_t begin;
-    size_t end;
+    char *repr;
+    u32 start_line;
+    u16 start_char;
+    u32 end_line;
+    u16 end_char;
+    union {
+        StringView s;
+        u8 c;
+        u64 n;
+        f64 d;
+    } value;
 } Token;
 
 typedef struct {
-    char *err_message;
-    bool err;
-    bool res;
-} ErrRes;
-
-typedef struct {
-    Token ctok;
-    ErrRes res;
+    Token tok;
     FIS *fis;
+    const char *err;
     char cc;
 } Lexer;
 
-bool lex_init(Lexer *lex, FIS *fis) {
-    lex->fis = fis;
-    lex->ctok.end_line = 1;
-    lex->ctok.end = 1;
-    return fis_read_byte(fis, &lex->cc);
+void lexer_init(Lexer *this, FIS *fis) {
+    this->fis = fis;
+    this->tok.end_line = 1;
 }
 
-#define is_whitespace(c) \
-      (c == ' '          \
-    || c == '\n'         \
-    || c == '\t'         \
-    || c == '\r'         \
-    || c == '\b')
+#define advance           \
+    ++this->tok.end_char; \
+    if (!fis_readc(this->fis, &this->cc))
 
-#define safe_advance                       \
-    ++lex->ctok.end;                       \
-    if (fis_read_byte(lex->fis, &lex->cc))
-
-#define SYMBOWLS ";@=:|<->()_?.#,[{]}+%&^~!*/"
+#define WHITESPACE " \n\t\b\r"
 #define NUMBERS "0123456789"
-#define HEX NUMBERS"abcdefABCDEF"
- 
-void lex_get_token(Lexer *lex) {
-    if (lex->fis->closed)
-        return;
+#define SPECIAL_CHARS "{}[]().:;=-+*/%|&^!~"
 
-    lex->res.err = false;
-    lex->res.res = false;
-    while (!lex->fis->closed) {
-        if (lex->cc == '\n') {
-            ++lex->ctok.end_line;
-            lex->ctok.end = 0;
-            safe_advance return;
-        }
-        if (!is_whitespace(lex->cc))
-            break;
-        safe_advance return;
-    }
-
-    lex->ctok.begin = lex->ctok.end;
-    lex->ctok.line = lex->ctok.end_line;
-    if (lex->cc == '`') {
-        safe_advance return;
-        lex->ctok.type = CharacterLiteral;
-        if (strchr("\n\t\r\b", lex->cc)) {
-            lex->res.err = true;
-            lex->res.err_message = "characters \"\\n\\t\\b\\r\" not allowed in character expresions.";
-            return;
-        }
-
-        if (lex->cc == '\\') {
-            char chr = '\\';
-            vec_new(v, sizeof(char));
-            vec_add(&v, &chr);
-            safe_advance return;
-            bool skip = false;
-            if (strchr("nrtbxo", lex->cc)) {
-                vec_add(&v, &lex->cc);
-                skip = lex->cc != 'x' || lex->cc != 'o';
-                safe_advance {}
-            }
-            if (!skip)
-                while (strchr(HEX, lex->cc)) {
-                    vec_add(&v, &lex->cc);
-                    safe_advance return;
-                }
-            chr = '\0';
-            vec_add(&v, &chr);
-            vec_shrink(&v);
-            lex->ctok.value = v.data;
-        } else {
-            lex->ctok.value    = malloc(2);
-            lex->ctok.value[0] = lex->cc;
-            lex->ctok.value[1] = '\0';
-            safe_advance {}
-        }
-        lex->res.res = true;
-        return;
-    }
-
-    if (lex->cc == '"') {
-        safe_advance return;
-        lex->ctok.type = StringLiteral;
-        bool multiline = lex->cc == '\n';
-        vec_new(v, sizeof(char));
-
-        while (lex->cc != '"') {
-            if (lex->cc == '\\') {
-                vec_add(&v, &lex->cc);
-                safe_advance break;
-            }
-            if (lex->cc == '\n') {
-                ++lex->ctok.end_line;
-                if (!multiline) {
-                    lex->res.err = true;
-                    lex->res.err_message = "string is not multiline.";
-                    return;
-                }
-            }
-            vec_add(&v, &lex->cc);
-            safe_advance break;
-        }
-
-        char chr = '\0';
-        vec_add(&v, &chr);
-        vec_shrink(&v);
-        lex->ctok.value = v.data;
-        lex->res.res = true;
-        safe_advance {}
-        return;
-    }
-
-    if (strchr(NUMBERS, lex->cc)) {
-        lex->ctok.type = NumberLiteral;
-        vec_new(v, sizeof(char));
-        char dot_count = 0;
-        while (strchr(NUMBERS".", lex->cc)) {
-            if (lex->cc == '.') {
-                ++dot_count;
-                if (dot_count > 1)
-                    break;
-            }
-            vec_add(&v, &lex->cc);
-            safe_advance break;
-        }
-        if (dot_count < 2) {
-            if (lex->cc == 'u' || lex->cc == 'U') {
-                vec_add(&v, &lex->cc);
-                safe_advance {}
-            }
-            if (strchr("flFL", lex->cc)) {
-                vec_add(&v, &lex->cc);
-                safe_advance {}
-            }
-        }
-
-        dot_count = '\0';
-        vec_add(&v, &dot_count);
-        vec_shrink(&v);
-        lex->ctok.value = v.data;
-        lex->res.res = true;
-        return;
-    }
-
-    bool ran = false;
-    vec_new(v, sizeof(char));
-    while (strchr(SYMBOWLS, lex->cc)) {
-        ran = true;
-        vec_add(&v, &lex->cc);
-        safe_advance break;
-    }
-    if (ran) {
-        lex->ctok.type = SpecialCharacter;
-        char chr = '\0';
-        vec_add(&v, &chr);
-        vec_shrink(&v);
-        lex->ctok.value = v.data;
-        lex->res.res = true;
-        return;
-    }
-
-    while (!strchr(NUMBERS"`\""SYMBOWLS" \n\t\r\b", lex->cc)) {
-        ran = true;
-        vec_add(&v, &lex->cc);
-        safe_advance break;
-    }
-    if (ran) {
-        lex->ctok.type = IdentifierLiteral;
-        char chr = '\0';
-        vec_add(&v, &chr);
-        vec_shrink(&v);
-        lex->ctok.value = v.data;
-        lex->res.res = true;
-        return;
-    }
-
-    free(v.data);
-    lex->res.err = true;
-    lex->res.err_message = "unexpected character. (wtf??\?)";
-    safe_advance {}
+u64 lexerParse_number(Lexer *this) {
+    this->err = "lexerParse_number is not implemented";
+    advance {}
+    return 0;
 }
 
-#undef safe_advance
-#undef is_whitespace
-#undef SYMBOWLS
-#undef NUMBERS
-#undef HEX
+u16 lexerParse_str_char(Lexer *this) {
+    if (this->cc != '\\') {
+        return this->cc;
+    }
+    advance return 0;
+    switch (this->cc) {
+        case 'n':
+            return '\n';
+        case 't':
+            return '\t';
+        case 'b':
+            return '\b';
+        case 'r':
+            return '\r';
+        case '0':
+            return lexerParse_number(this);
+    }
+    this->err = "unknown escape sequence.";
+    advance {}
+    return 256;
+}
+
+int lexerString_literal_parse(Lexer *this, Alloc *allo) {
+    Vec v = {0};
+    Vec repr = {0};
+    vec_init(&v);
+    vec_init(&repr);
+    char c = '"';
+    vec_add(&repr, &this->cc);
+    advance return 0;
+    u8 multiline = this->cc == '\n';
+    while (this->cc != '"') {
+        if (this->cc == '\n') {
+            if (multiline)
+                ++this->tok.end_line;
+            else {
+                free(v.data);
+                free(repr.data);
+                this->err = "string is not multiline.";
+                advance {}
+                return 0;
+            }
+        }
+        u16 temp = lexerParse_str_char(this);
+        if (temp == 256)
+            return 0;
+        c = temp;
+        vec_add(&v, &c);
+        if (strchr("\t\b\r\0", this->cc) || (!multiline && this->cc == '\n')) {
+            c = '\\';
+            vec_add(&repr, &c);
+        } else {
+            vec_add(&repr, &c);
+        }
+        advance break;
+    }
+    c = '"';
+    vec_add(&repr, &c);
+    c = '\0';
+    vec_add(&repr, &c);
+    this->tok.type = StringLiteral;
+    this->tok.value.s.len = v.len;
+    this->tok.value.s.str = aalloc(allo, v.len);
+    memcpy(this->tok.value.s.str, v.data, v.len);
+    this->tok.repr = aalloc(allo, repr.len);
+    memcpy(this->tok.repr, repr.data, repr.len);
+    free(v.data);
+    free(repr.data);
+    advance {}
+    return 1;
+}
+
+int lexerChar_literal_parse(Lexer *this, Alloc *allo) {
+    advance return 0;
+    u16 temp = lexerParse_str_char(this);
+    if (temp == 256)
+        return 0;
+    this->tok.type = CharLiteral;
+    this->tok.value.c = temp;
+    Vec repr = {0};
+    vec_init(&repr);
+    char c = '`';
+    vec_add(&repr, &c);
+    if (strchr("\n\t\b\r\0", this->tok.value.c))
+        c = '\\';
+    else
+        c = this->tok.value.c;
+    vec_add(&repr, &c);
+    this->tok.repr = aalloc(allo, repr.len);
+    memcpy(this->tok.repr, repr.data, repr.len);
+    advance {}
+    return 1;
+}
+
+int lexerNum_literal_parse(Lexer *this, Alloc *allo) {
+    Vec repr = {0};
+    vec_init(&repr);
+    u64 num = 0;
+    u64 dotdigitcount = 1;
+    u8 dotcount = 0;
+    while (strchr(NUMBERS".", this->cc)) {
+        vec_add(&repr, &this->cc);
+        if (this->cc == '.') {
+            ++dotcount;
+            if (dotcount > 1)
+                break;
+        } else {
+            num *= 10;
+            num += this->cc - '0';
+            if (dotcount > 0)
+                dotdigitcount *= 10;
+        }
+        advance break;
+    }
+    this->tok.type = IntLiteral;
+    this->tok.value.n = num;
+    if (dotcount > 0) {
+        this->tok.type = FloatLiteral;
+        this->tok.value.d = (num / (f64)dotdigitcount);
+    }
+    char c = '\0';
+    vec_add(&repr, &c);
+    this->tok.repr = aalloc(allo, repr.len);
+    memcpy(this->tok.repr, repr.data, repr.len);
+    return 1;
+}
+
+int lexerSpecial_char_parse(Lexer *this, Alloc *allo) {
+    this->tok.type = SpecialChar;
+
+    if (strchr("()[]{}.;", this->cc)) {
+        this->tok.repr = aalloc(allo, 2);
+        this->tok.repr[0] = this->cc;
+        this->tok.repr[1] = 0;
+        this->tok.value.s.len = 1;
+        this->tok.value.s.str = this->tok.repr;
+        advance {}
+        return 1;
+    }
+
+    this->err = "unknown operator.";
+    advance {}
+    return 0;
+}
+
+int lexerIdentifier_parse(Lexer *this, Alloc *allo) {
+    this->tok.type = Identifier;
+    Vec v = {0};
+    vec_init(&v);
+    while (!strchr("\"'"SPECIAL_CHARS WHITESPACE,  this->cc)) {
+        vec_add(&v, &this->cc);
+        advance break;
+    }
+    char c = '\0';
+    vec_add(&v, &c);
+    this->tok.value.s.len = v.len - 1;
+    this->tok.value.s.str = aalloc(allo, v.len);
+    memcpy(this->tok.value.s.str, v.data, v.len);
+    this->tok.repr = this->tok.value.s.str;
+    free(v.data);
+    return 1;
+}
+
+int lexer_next_token(Lexer *this, Alloc *allo) {
+    this->err = NULL;
+    while (strchr(WHITESPACE, this->cc)) {
+        if (this->cc == '\n') {
+            ++this->tok.end_line;
+            this->tok.end_char = 0;
+        }
+        /*
+        if (this->cc == '/') {
+            advance return 0;
+            if (this->cc == '/') {
+                while (this->cc != '\n') {
+                    advance return 0;
+                }
+            } else {
+                fis_offset(this->fis, -1);
+                break;
+            }
+        }
+        */
+        advance return 0;
+    }
+    this->tok.start_line = this->tok.end_line;
+    this->tok.start_char = this->tok.end_char;
+    if (this->cc == '"') {
+        return lexerString_literal_parse(this, allo);
+    }
+    if (this->cc == '`') {
+        return lexerChar_literal_parse(this, allo);
+    }
+    if (strchr(NUMBERS, this->cc)) {
+        return lexerNum_literal_parse(this, allo);
+    }
+    if (strchr(SPECIAL_CHARS, this->cc)) {
+        return lexerSpecial_char_parse(this, allo);
+    }
+    return lexerIdentifier_parse(this, allo);
+}
+
 #endif // LEXER_C

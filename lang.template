@@ -1,0 +1,64 @@
+// class    | struct            / diff
+// identity | no identity       /
+//          | no implementation /
+// basically the same otherwise /
+
+
+struct S {
+    
+}
+
+///
+class C {
+    // public
+    .fieldName: type = value;
+    staticfieldName: type = value;
+    // private
+    -.foo: [u8] = "bar";
+    -static: type = value;
+}
+
+interface I {
+    // public
+    .methodName(a: type = init, ...);
+    staticMethodName(a: type = init, ...);
+}
+
+implement I for C {
+    .methodName(a: type = init, ...) type {
+        // code
+        return 0 as type;
+    }
+}
+
+///
+class Foo {
+    .bar: i32 = 0;
+}
+
+// necessery matching name
+implement Foo {
+    .getBar() i32 {
+        return bar; // this.bar;
+    }
+}
+
+///
+class String {
+    .fieldName: type = init;
+    staticfieldName: type = init;
+
+    // initializer method, called on `new String;`
+    .() {
+
+    }
+    
+    .methodName(argName: type = value) type {
+    }
+}
+
+//
+
+s: String = new String;
+s.methodName arg.cast(type);
+s::methodName

@@ -46,7 +46,7 @@ void lexer_init(Lexer *this, FIS *fis) {
 
 #define WHITESPACE " \n\t\b\r"
 #define NUMBERS "0123456789"
-#define SPECIAL_CHARS "{}[]().:;=-+*/%|&^!~"
+#define SPECIAL_CHARS "{}[]().:;=-+*/%|&^!~<>"
 
 u64 lexerParse_number(Lexer *this) {
     this->err = "lexerParse_number is not implemented";
@@ -181,16 +181,49 @@ int lexerNum_literal_parse(Lexer *this, Alloc *allo) {
     return 1;
 }
 
+#define setchr(l, v)                        \
+    this->tok.repr = aalloc(allo, l + 1);   \
+    for (u8 _i = 0; _i < l; ++_i)           \
+        this->tok.repr[_i] = (v)[_i];       \
+    this->tok.repr[l] = 0;                  \
+    this->tok.value.s.len = l;              \
+    this->tok.value.s.str = this->tok.repr
+
 int lexerSpecial_char_parse(Lexer *this, Alloc *allo) {
     this->tok.type = SpecialChar;
 
-    if (strchr("()[]{}.;", this->cc)) {
-        this->tok.repr = aalloc(allo, 2);
-        this->tok.repr[0] = this->cc;
-        this->tok.repr[1] = 0;
-        this->tok.value.s.len = 1;
-        this->tok.value.s.str = this->tok.repr;
+    // ":=-+*/%|&^!~<>"
+    // "=-+*/%|&^!~<>" : "="
+
+    char txt[4];
+    txt[0] = this->cc;
+
+    if (strchr("()[]{}.;", txt[0])) {
         advance {}
+        setchr(1, txt);
+        return 1;
+    }
+
+    if (strchr("=-+*/%|&^!~<>", this->cc)) {
+        advance {}
+        if (this->cc == '=') {
+            txt[1] = '=';
+            advance {}
+            setchr(2, txt);
+            return 1;
+        }
+        setchr(1, &this->cc);
+        return 1;
+    }
+
+    if (txt[0] == ':') {
+        if (txt[1] == ':') {
+            advance {};
+            setchr(2, txt);
+            return 1;
+        }
+        advance {};
+        setchr(1, txt);
         return 1;
     }
 
@@ -198,6 +231,8 @@ int lexerSpecial_char_parse(Lexer *this, Alloc *allo) {
     advance {}
     return 0;
 }
+
+#undef setchr
 
 int lexerIdentifier_parse(Lexer *this, Alloc *allo) {
     this->tok.type = Identifier;
@@ -219,24 +254,24 @@ int lexerIdentifier_parse(Lexer *this, Alloc *allo) {
 
 int lexer_next_token(Lexer *this, Alloc *allo) {
     this->err = NULL;
-    while (strchr(WHITESPACE, this->cc)) {
+    while (strchr(WHITESPACE"/", this->cc)) {
         if (this->cc == '\n') {
             ++this->tok.end_line;
             this->tok.end_char = 0;
         }
-        /*
         if (this->cc == '/') {
             advance return 0;
             if (this->cc == '/') {
                 while (this->cc != '\n') {
                     advance return 0;
                 }
+                ++this->tok.end_line;
+                this->tok.end_char = 0;
             } else {
                 fis_offset(this->fis, -1);
                 break;
             }
         }
-        */
         advance return 0;
     }
     this->tok.start_line = this->tok.end_line;

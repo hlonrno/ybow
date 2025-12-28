@@ -4,7 +4,7 @@
 
 #ifndef ARENA_SIZE
 #define ARENA_SIZE 4096
-#endif
+#endif // ARENA_SIZE
 
 typedef struct {
     void *start;

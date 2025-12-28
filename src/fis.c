@@ -36,4 +36,14 @@ int fis_readc(FIS *this, char *c) {
     return 1;
 }
 
+void fis_offset(FIS *this, i32 offset) {
+    if (abs(offset) <= this->bufi) {
+        this->bufi += offset;
+        return;
+    }
+    fseek(this->file, this->bufi + offset, SEEK_CUR);
+    this->bufi = 0;
+    this->buf_len = fread(this->buf, 1, BUF_SIZE, this->file);
+}
+
 #endif // FIS_C

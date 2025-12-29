@@ -1,1 +1,0 @@
-gcc -Wall -Wextra -Wno-pointer-arith -Wno-strict-prototypes -pedantic -std=c99 -ggdb -o exec src/main.c && ./exec 'main.yb'

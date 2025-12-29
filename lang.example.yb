@@ -24,10 +24,10 @@ implement ArrayList<T> {
         data = new [T; capacity];
     }
 
-    .(initial_capacity: u32) {
-        assert initial_capacity > 0 else
+    .(initialCapacity: u32) {
+        assert initialCapacity > 0 else
             "ArrayList capacity must be greater than 0.";
-        capacity = initial_capacity;
+        capacity = initialCapacity;
         this();
     }
 }

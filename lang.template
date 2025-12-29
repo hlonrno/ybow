@@ -36,7 +36,7 @@ class Foo {
     .bar: i32 = 0;
 }
 
-// necessery matching name
+// necessery matching type
 implement Foo {
     .getBar() i32 {
         return bar; // this.bar;

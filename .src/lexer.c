@@ -217,12 +217,13 @@ int lexerSpecial_char_parse(Lexer *this, Alloc *allo) {
     }
 
     if (txt[0] == ':') {
+        advance {}
+        txt[1] = this->cc;
         if (txt[1] == ':') {
             advance {};
             setchr(2, txt);
             return 1;
         }
-        advance {};
         setchr(1, txt);
         return 1;
     }

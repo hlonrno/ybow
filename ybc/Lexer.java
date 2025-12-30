@@ -1,16 +1,16 @@
 import java.io.IOException;
-import java.io.InputStream;
+import java.io.Reader;
 import java.util.Optional;
 
 public class Lexer {
     private final String SPECIAL_CHARS = "";
-    private InputStream stream;
+    private Reader stream;
     private int column = 0;
     private int line = 1;
     private boolean eof = false;
     private char cc;
 
-    public Lexer(InputStream stream) throws IOException {
+    public Lexer(Reader stream) throws IOException {
         this.stream = stream;
         advance();
     }
@@ -32,7 +32,7 @@ public class Lexer {
 
     public Optional<Token> getNextToken() throws LexerException, IOException {
         Token tok = new Token();
-        tok.beginColumn = tok.endChar = column;
+        tok.beginColumn = tok.endColumn = column;
         tok.beginLine = tok.endLine = line;
         while (" \n\t\b\r/\f".indexOf(cc) > -1) {
             // parse // comments
@@ -72,6 +72,7 @@ public class Lexer {
         StringBuilder str = new StringBuilder('\\');
         if ("ntbrfs\\\"\n".indexOf(cc) > -1) {
             str.append(cc);
+            advance();
         } else if ("xob0123456789".indexOf(cc) > -1) {
             String chars = switch (cc) {
                 case 'b' -> "01";
@@ -79,7 +80,6 @@ public class Lexer {
                 case 'x' -> "0123456789abcdefABCDEF";
                 default -> "0123456789";
             };
-            int count = 0;
             int maxcount = switch (cc) {
                 case 'b' -> 8;
                 case 'o' -> 4;
@@ -88,7 +88,7 @@ public class Lexer {
             };
             str.append(cc);
             advance();
-            while (chars.indexOf(cc) > -1 && count++ < maxcount) {
+            for (int i = 0; i < maxcount && chars.indexOf(cc) > -1; i++) {
                 str.append(cc);
                 advance();
             }
@@ -102,6 +102,7 @@ public class Lexer {
         tok.type = TokenType.CharacterLiteral;
         advance();
         tok.value = parseStringEscapeSequence();
+        advance();
         return tok;
     }
 

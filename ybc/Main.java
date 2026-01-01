@@ -9,7 +9,7 @@ public class Main {
     public static void main(String[] args)
         throws LexerException, IOException, FileNotFoundException
     {
-        File file = new File("../main.yb");
+        File file = new File("main.yb");
         try (var fileIn = new FileReader(file)) {
             var reader = new BufferedReader(fileIn);
             var lexer = new Lexer(reader);
@@ -20,6 +20,8 @@ public class Main {
                     break;
                 System.out.println(token.get().toString());
             } while (true);
+        } catch (LexerException e) {
+            System.out.println("Parsing error: " + e.getMessage());
         } catch (Exception e) { throw e; } // yes.
     }
 }

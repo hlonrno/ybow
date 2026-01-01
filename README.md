@@ -21,7 +21,7 @@ ybe/* (ybow-execute) will be written in C. \
 yb/* (the multiplexer) will be written in (idk yet, but probs) C.
 
 ## A bit of history
--# ...(before I've forgotten it)
+...(before I've forgotten it)
 
 `Ybow` comes from S`y`m`bow`l, because the original idea for this language was
 "The only syntax is symbowls and everything is an expression". \

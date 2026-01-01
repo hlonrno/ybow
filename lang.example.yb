@@ -24,6 +24,7 @@ implement ArrayList<T> {
         data = new [T; capacity];
     }
 
+    // method overloading
     .(initialCapacity: u32) {
         assert initialCapacity > 0 else
             "ArrayList capacity must be greater than 0.";

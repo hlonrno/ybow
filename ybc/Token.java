@@ -9,8 +9,14 @@ public class Token {
 
     @Override
     public String toString() {
-        return String.format("Token:%d-%d:%d-%d: (%s) %s",
-                beginLine, endLine, beginColumn, endColumn,
-                type.getDeclaringClass().getName(), value);
+        return String.format("%d:%d: (%s) '%s'",
+                beginLine, beginColumn,
+                switch (type) {
+                    case CharacterLiteral -> "chr";
+                    case StringLiteral    -> "str";
+                    case NumberLiteral    -> "num";
+                    case SpecialChar      -> "spc";
+                    case Identifier       -> "idn";
+                }, value);
     }
 }

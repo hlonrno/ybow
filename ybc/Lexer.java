@@ -3,7 +3,9 @@ import java.io.Reader;
 import java.util.Optional;
 
 public class Lexer {
-    private final String SPECIAL_CHARS = "";
+    private static final String SPECIAL_CHARS = "()[]{}.,+-*/%&|~!:=;<>";
+    private static final String WHITESPACE_CHARS = " \n\t\r\b\f";
+    private static final String IDENTIFIER_CHARS = SPECIAL_CHARS + WHITESPACE_CHARS + "\"`";
     private Reader stream;
     private int column = 0;
     private int line = 1;
@@ -34,7 +36,7 @@ public class Lexer {
         Token tok = new Token();
         tok.beginColumn = tok.endColumn = column;
         tok.beginLine = tok.endLine = line;
-        while (" \n\t\b\r/\f".indexOf(cc) > -1) {
+        while (WHITESPACE_CHARS.indexOf(cc) > -1 || cc == '/') {
             // parse // comments
             if (cc == '/') {
                 advance();
@@ -55,14 +57,18 @@ public class Lexer {
         }
         
         if (cc == '`')
-            return Optional.of(parseCharacterLiteral(tok));
-        if (cc == '"')
-            return Optional.of(parseStringLiteral(tok));
-        if ("0123456789".indexOf(cc) > -1)
-            return Optional.of(parseNumberLiteral(tok));
-        if (SPECIAL_CHARS.indexOf(cc) > -1)
-            return Optional.of(parseSpecialCharacter(tok));
-        return Optional.of(parseIdentifier(tok));
+            parseCharacterLiteral(tok);
+        else if (cc == '"')
+            parseStringLiteral(tok);
+        else if ("0123456789".indexOf(cc) > -1)
+            parseNumberLiteral(tok);
+        else if (SPECIAL_CHARS.indexOf(cc) > -1)
+            parseSpecialCharacter(tok);
+        else
+            parseIdentifier(tok);
+        tok.endLine = line;
+        tok.endColumn = Math.max(1, column - 1);
+        return Optional.of(tok);
     }
 
     private String parseStringEscapeSequence() throws LexerException, IOException {
@@ -70,9 +76,9 @@ public class Lexer {
             return String.valueOf(cc);
         advance();
         StringBuilder str = new StringBuilder('\\');
+        str.append('\\');
         if ("ntbrfs\\\"\n".indexOf(cc) > -1) {
             str.append(cc);
-            advance();
         } else if ("xob0123456789".indexOf(cc) > -1) {
             String chars = switch (cc) {
                 case 'b' -> "01";
@@ -84,7 +90,7 @@ public class Lexer {
                 case 'b' -> 8;
                 case 'o' -> 4;
                 case 'x' -> 2;
-                default -> 2;  // 3 // 1st char doesn't get counted 
+                default -> 3;
             };
             str.append(cc);
             advance();
@@ -115,21 +121,53 @@ public class Lexer {
             advance();
         }
         advance();
+        tok.value = str.toString();
         return tok;
     }
 
     private Token parseNumberLiteral(Token tok) throws IOException {
         tok.type = TokenType.NumberLiteral;
+        byte dotCount = 0;
+        StringBuilder str = new StringBuilder();
+        // TODO: eg. 1e-5, 0x1b, 0o34, 0b11110
+        while ("0123456789.".indexOf(cc) > -1) {
+            if (cc == '.') {
+                dotCount++;
+                if (dotCount > 1)
+                    break;
+            }
+            str.append(cc);
+            advance();
+        }
+        tok.value = str.toString();
         return tok;
     }
 
     private Token parseSpecialCharacter(Token tok) throws IOException {
         tok.type = TokenType.SpecialChar;
+        StringBuilder str = new StringBuilder();
+        while (!(SPECIAL_CHARS.indexOf(cc) < 0 || eof)) {
+            str.append(cc);
+            advance();
+        }
+        tok.value = str.toString();
         return tok;
     }
 
     private Token parseIdentifier(Token tok) throws IOException {
         tok.type = TokenType.Identifier;
+        StringBuilder str = new StringBuilder();
+        while (!(IDENTIFIER_CHARS.indexOf(cc) > -1 || eof)) {
+            str.append(cc);
+            advance();
+        }
+        tok.value = str.toString();
         return tok;
+    }
+
+    private boolean isValidOperator(StringBuilder str) {
+        if ("()[]{}.,".indexOf(str.charAt(0)) > -1)
+            return true;
+        return false;
     }
 }

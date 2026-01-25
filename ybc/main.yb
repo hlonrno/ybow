@@ -1,42 +1,4 @@
-interface List<T> {
-    .size() u32;
-}
-
-// private interface.
-interface -ReadableList<T> ++ List<T> {
-    .get(i: u32) T;
-}
-
-interface -WritableList<T> ++ List<T> {
-    .set(i: u32, val: T);
-    .add(i: u32, val: T);
-    .remove(i: u32) T;
-}
-
-class ArrayList<T> {
-    -.data: [T];
-    -.len: u32 = 8;
-    -.capacity = 32;
-}
-
-implement ArrayList<T> {
-    .() {
-        data = new [T; capacity];
-    }
-
-    // method overloading
-    .(initialCapacity: u32) {
-        assert initialCapacity > 0 else
-            "ArrayList capacity must be greater than 0.";
-        capacity = initialCapacity;
-        this();
-    }
-}
-
-implement List<T> for ArrayList<T> {
-    .size() u32 {
-        return len;
-    }
-}
-
-final list = new ArrayList<T>;
+`a`
+"abcd\""
+0x134Ff
+123.231.32

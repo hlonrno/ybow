@@ -17,9 +17,8 @@ class ArrayList<T> {
     -.data: [T];
     -.len: u32 = 8;
     -.capacity = 32;
-}
 
-implement ArrayList<T> {
+    // constructor
     .() {
         data = new [T; capacity];
     }

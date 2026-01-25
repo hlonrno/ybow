@@ -1,7 +1,7 @@
 # Ybow
 
-Full documentation of the language doesn't exist. \
-You can judge by the lang.example.yb/.template files.
+Documentation of the language doesn't exist. \
+You can judge by the `ybc/example.yb` file.
 
 ## Plans
 
@@ -12,11 +12,12 @@ Not many.
 
 'ybc' to compile. \
 'ybe' to execute. \
-'yb' as a multiplexer between the two.
+'yb' as a multiplexer between the two. \
+Might eventually change to only yb if I think of a syntax.
 
 ## About the structure
 
-ybc/* (ybow-compile) will be written in Java (might be rewritten in Ybow). \
+ybc/* (ybow-compile) a functional-enough template will be written in Java (will be rewritten in Ybow). \
 ybe/* (ybow-execute) will be written in C. \
 yb/* (the multiplexer) will be written in (idk yet, but probs) C.
 
@@ -25,7 +26,7 @@ yb/* (the multiplexer) will be written in (idk yet, but probs) C.
 
 `Ybow` comes from S`y`m`bow`l, because the original idea for this language was
 "The only syntax is symbowls and everything is an expression". \
-Here's an exmaple of a function* that takes a number
+Here's an exmaple of a function\* that takes a number
 and returns 1 if it's prime, 0 otherwise. `//` is a comment.
 
 ```

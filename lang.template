@@ -60,5 +60,5 @@ class String {
 //
 
 s: String = new String;
-s.methodName arg.cast(type);
+s.methodName(arg.cast(type));
 s::methodName

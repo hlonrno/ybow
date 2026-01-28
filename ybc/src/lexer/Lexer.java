@@ -11,8 +11,8 @@ public class Lexer implements Iterator<Result<Token, Exception>> {
     public static final String SYMBOWLS = "@{}()[].,;>-+*/%=!<~&|^:";
     public static final String WHITESPACE = " \n\t\r\b\f";
     public static final String NOT_IDENTIFIER = SYMBOWLS + WHITESPACE;
+    public final String SOURCE;
     private final Reader reader;
-    private final String SOURCE;
     private Token tok;
     private boolean eos, err;
     private char cc;
@@ -21,6 +21,7 @@ public class Lexer implements Iterator<Result<Token, Exception>> {
         this.reader = reader;
         this.SOURCE = source;
         tok = new Token();
+        tok.line = 1;
         eos = err = false;
         advanceEOS();
         while (WHITESPACE.indexOf(cc) > -1)
@@ -94,7 +95,7 @@ public class Lexer implements Iterator<Result<Token, Exception>> {
     }
 
     private void tokenizeString() throws IOException, LexerException {
-        // "[^"]"
+        // "#c*"
         tok.type = TokenType.LString;
         tok.image = "\"";
         advance();
@@ -107,8 +108,9 @@ public class Lexer implements Iterator<Result<Token, Exception>> {
 
     private void tokenizeNumber() throws IOException, LexerException {
         tok.type = TokenType.LNumber;
-        if (cc == '0') {
-            tok.image = parseBasedNumber(false);
+        tok.image = parseSimpleNumber(); // 0-9
+        if (tok.image.equals("0") && "box".indexOf(cc) > -1) {
+            tok.image += parseBasedNumber(false);
             // [u][zsil]
             if (cc == 'u' || cc == 'U' ) {
                 tok.image += cc;
@@ -120,7 +122,6 @@ public class Lexer implements Iterator<Result<Token, Exception>> {
             }
             return;
         }
-        tok.image = parseSimpleNumber(); // 0-9
         boolean flt = false;
         if (cc == '.') {
             advance();
@@ -184,10 +185,7 @@ public class Lexer implements Iterator<Result<Token, Exception>> {
             case '<' -> TokenType.SLess;
             case '>' -> TokenType.SGreater;
             case '@' -> TokenType.SMonkeyA;
-            default -> {
-                advanceEOS();
-                throw new UnreachableError();
-            }
+            default -> throw new UnreachableError();
         };
         tok.image = String.valueOf(cc);
         advanceEOS();
@@ -243,7 +241,9 @@ public class Lexer implements Iterator<Result<Token, Exception>> {
             case "pub" -> TokenType.KPub;
             case "priv" -> TokenType.KPriv;
             case "final" -> TokenType.KFinal;
+            case "fn" -> TokenType.KFn;
             case "class" -> TokenType.KClass;
+            case "primitive" -> TokenType.KPrimitive;
             case "enum" -> TokenType.KEnum;
             case "intef" -> TokenType.KInterface;
             case "impl" -> TokenType.KImplement;
@@ -252,6 +252,7 @@ public class Lexer implements Iterator<Result<Token, Exception>> {
             case "new" -> TokenType.KNew;
             case "is" -> TokenType.KIs;
             case "void" -> TokenType.KVoid;
+            case "auto" -> TokenType.KAuto;
             case "byte" -> TokenType.KByte;
             case "short" -> TokenType.KShort;
             case "int" -> TokenType.KInt;
@@ -283,6 +284,7 @@ public class Lexer implements Iterator<Result<Token, Exception>> {
             return s;
         }
         if (cc == '0') {
+            advanceEOS();
             return parseBasedNumber(true);
         }
         if ("123456789".indexOf(cc) > -1) {
@@ -293,7 +295,6 @@ public class Lexer implements Iterator<Result<Token, Exception>> {
 
     private String parseBasedNumber(boolean doLimit) throws IOException, LexerException {
         String s = String.valueOf(cc);
-        advanceEOS();
         String chars;
         int limit;
         if (cc == 'x') {
@@ -308,7 +309,6 @@ public class Lexer implements Iterator<Result<Token, Exception>> {
         } else {
             throw new UnkownEscapeSequenceException("0x, 0o, or 0b expected, got unknown \"" + cc + "\".", SOURCE, tok);
         }
-        s += cc;
         advanceEOS();
         for (int i = 0; (i < limit || !doLimit) && !eos; i++) {
             if (chars.indexOf(cc) < 0)

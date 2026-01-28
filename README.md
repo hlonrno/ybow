@@ -1,7 +1,6 @@
 # Ybow
 
-Documentation of the language doesn't exist. \
-You can judge by the `ybc/example.yb` file.
+Documentation of the language doesn't exist.
 
 ## Plans
 

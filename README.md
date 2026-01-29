@@ -12,7 +12,7 @@ Not many.
 'ybc' to compile. \
 'ybe' to execute. \
 'yb' as a multiplexer between the two. \
-Might eventually change to only yb if I think of a syntax.
+Will change to only have the yb command (before v1.0.0) and there will be no multiplexing.
 
 ## About the structure
 
@@ -23,14 +23,15 @@ yb/* (the multiplexer) will be written in (idk yet, but probs) C.
 ## A bit of history
 ...(before I've forgotten it)
 
-`Ybow` comes from S`y`m`bow`l, because the original idea for this language was
-"The only syntax is symbowls and everything is an expression". \
+`Ybow` comes from S`y`m`bow`l (unintentionally misspelled), because the original
+idea for this language was "The only syntax is symbowls and everything is an
+expression". \
 Here's an exmaple of a function\* that takes a number
 and returns 1 if it's prime, 0 otherwise. `//` is a comment.
 
 ```
 // "@1" is "typeof(1)" (aka 32b int)
-is_prime = n: @1 -> @1   // *varialbe assigned to a function expression
+is_prime = n: @1 -> @1   // *variable assigned to a function expression
     ...                  // loop
         ? n % i == 0     // if (n % i == 0)
             #0;          // break* returning 0

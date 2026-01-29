@@ -1,27 +1,10 @@
-metadata;
+everything is big endian.
+
+metadata {
+    u4 file_signature = ".YMB"
+    u2 major_version
+    u2 minor_version
+};
 constpool;
 classes;
 program;
-
-Long<T>:
-    begin:
-        10000000
-        ├┘├────┘
-        │ └ 6b data of T
-        └ "begin"
-    continue:
-        00000000
-        │├─────┘
-        │└ 7b data of T
-        └ "continue"
-    end:
-        11000000
-        ├┘├────┘
-        │ └ 6b data of T
-        └ "end"
-    example:
-        (...0000)|1100000|01000000|100000:
-            <10 100000><0 01000000><0 1100000><11 000000>
-        100000:
-            <11 100000>
-

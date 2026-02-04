@@ -5,10 +5,11 @@ import java.io.Reader;
 import java.util.Iterator;
 
 import src.Result;
+import src.lexer.TokenType;
 import src.lexer.exception.*;
 
 public class Lexer implements Iterator<Result<Token, Exception>> {
-    public static final String SYMBOWLS = "@{}()[].,;>-+*/%=!<~&|^:";
+    public static final String SYMBOWLS = "@{}()[].,;>-+*/%=!<~&|^:?";
     public static final String WHITESPACE = " \n\t\r\b\f";
     public static final String NOT_IDENTIFIER = SYMBOWLS + WHITESPACE;
     public final String SOURCE;
@@ -180,11 +181,12 @@ public class Lexer implements Iterator<Result<Token, Exception>> {
             case '~' -> TokenType.STilde;
             case '!' -> TokenType.SBang;
             case ':' -> TokenType.SColon;
-            case ';' -> TokenType.SSemiColon;
+            case ';' -> TokenType.SSemicolon;
             case '=' -> TokenType.SEquals;
             case '<' -> TokenType.SLess;
             case '>' -> TokenType.SGreater;
             case '@' -> TokenType.SMonkeyA;
+            case '?' -> TokenType.SQuestion;
             default -> throw new UnreachableError();
         };
         tok.image = String.valueOf(cc);
@@ -217,28 +219,44 @@ public class Lexer implements Iterator<Result<Token, Exception>> {
             tok.image += cc;
             advanceEOS();
         }
-        if (cc == '!') {
-            tok.image += cc;
-            advanceEOS();
-        }
         tok.type = switch (tok.image) {
             case "switch" -> TokenType.KSwitch;
             case "case" -> TokenType.KCase;
             case "if" -> TokenType.KIf;
             case "else" -> TokenType.KElse;
-            case "loop" -> TokenType.KLoop;
-            case "break" -> TokenType.KBreak;
-            case "continue" -> TokenType.KContinue;
-            case "return" -> TokenType.KReturn;
-            case "breakif" -> TokenType.KBreakif;
-            case "continueif" -> TokenType.KContinueif;
-            case "returnif" -> TokenType.KReturnif;
-            case "assert!" -> TokenType.KAssertB;
+            case "loop" -> {
+                if (cc == '!') {
+                    advanceEOS();
+                    yield TokenType.KLoopWhile;
+                }
+                yield TokenType.KLoop;
+            }
+            case "break" -> {
+                if (cc == '!') {
+                    advanceEOS();
+                    yield TokenType.KBreakif;
+                }
+                yield TokenType.KBreak;
+            }
+            case "continue" -> {
+                if (cc == '!') {
+                    advanceEOS();
+                    yield TokenType.KContinueif;
+                }
+                yield TokenType.KContinue;
+            }
+            case "return" -> {
+                if (cc == '!') {
+                    advanceEOS();
+                    yield TokenType.KReturnif;
+                }
+                yield TokenType.KReturn;
+            }
             case "assert" -> TokenType.KAssert;
             case "this" -> TokenType.KThis;
             case "This" -> TokenType.KCThis;
             case "native" -> TokenType.KNative;
-            case "pub" -> TokenType.KPub;
+            case "prot" -> TokenType.KProt;
             case "priv" -> TokenType.KPriv;
             case "final" -> TokenType.KFinal;
             case "fn" -> TokenType.KFn;

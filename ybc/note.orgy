@@ -1,0 +1,108 @@
+orgy 0.1
++ literals
+    - identifier: kitty
+    - char      : 'a'
+    - string    : "a"
+    - number    : 3 / 3.14f / 314e-2 / ...
+    - array     : [ <expr> <expr> <...> ]
+    - bool      : true / false
+    - null      : null
+
++ types
+    - base    : int / bool / String
+    - trash   : _
+    - array   : int[] / byte[5]
+    - generic : <A, _>
+    - extended: A: B
+
++ expressions / exprs
+    - any literal is an expr
+    - any type is an expr
+    - operators
+      order: from highest to lowest precedence
+      e  = any expr
+      t  = any type
+      i  = any identifier literal
+      'o = "e o e" where o is an operator
+        | "method call"              : call
+        | i++ i-- e!                 : postfix
+        | @t +e -e ++i --i ~e !e (e) : prefix
+        | "i: t"                     : declare
+        | e.i                        : member
+        | '= '<=> ':=                : assign
+        | '+= '-= ...                : compound assign
+        | '&& '!&&                   : boolean and
+        | '^^ '!^^                   : boolean xor
+        | '|| '!||                   : boolean or
+        | '== '!= '< '> '<= '>=      : comparative
+        | '**                        : exponential
+        | '* '/                      : multiplicative
+        | '+ '-                      : additive
+        | '<< '>> '<<< '>>>          : bitwise
+        | '& '~&                     : bitwise and
+        | '^ '~^                     : bitwise xor
+        | '| '~|                     : bitwise or
+    + other
+        - method call: the name is an expr for operators like '. (ie. <obj.mthd()>)
+            | <expr: name>(<expr: arg>)
+            | <expr: name>(<expr: arg1>, <expr: arg2>, <...>)
+        - if expr
+            | if (<expr: condition>) <expr> else <expr>
+        - switch expr, note: the 'default statement' (else -> ...) can be anywhere
+            | switch (<expr: compared>) {
+                  case <expr: against | comma separated> -> <expr>;
+                  else <identifier: variable> -> <expr>;
+                  else -> <expr>;
+              }
+        - loop expr: must always return a value
+            | loop <expr>
+            | loop!(<expr: condition>) <expr>
+        - loop-else expr: else executes if loop doesn't return
+            | loop <expr> else <expr>
+            | loop!(<expr: condition>) <expr> else <expr>
+        - special conditonals: *action*s with <value> if <condition> is true, else results in <value>
+            | break!(<expr: condition>) <expr: value>
+            | continue!(<expr: condition>) <expr: value>
+            | return!(<expr: condition>) <expr: value>
+
++ statements / stmts
+    - not every stmt ends in a <;>
+    - any expr can be a stmt
+    - simple stmts
+        | { <stmt>; <stmt>; <...>; }
+        | if (<expr: condition>) <stmt>
+        | if (<expr: condition>) <stmt> else <stmt>
+        | loop <stmt>
+        | loop!(<expr: condition>) <stmt>
+        | break;
+        | break <expr: value>;
+        | return <expr: value>;
+        | continue;
+    - implicit return stmt: omit a semicolon at the end of a block stmt
+      NOTE stmt is parsed before expr, so any expr you return must not be parsable as a stmt.
+    + switch stmt
+        - switch (<expr: value>) {
+            <expr: case> -> <stmt>
+            <expr: case1>, <expr: case2>, <...> -> <stmt>
+            else -> <stmt> // default, regardless of order
+        }
+    + enum definition
+        - enum <identifier: name> {
+            // elements
+        }
+    + class definition
+        - class <type_expr: name> {
+            // fields & methods
+        }
+    + interface definition
+        - interf <type_expr: name> {
+            // methods
+        }
+    + primitive definition
+        - primitive <identifier: name>(<type_expr: type>) {
+            // methods
+        }
+    + implements stmt
+        - impl <type_expr: interf> for <type_expr: class> {
+            // implemented methods
+        }

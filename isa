@@ -14,19 +14,21 @@ push_d  8B
 push_0o
 pop
 dup
-// dupsnd
 swap
 
-getl_b
+getl_b  ub
 getl_0
 getl_1
-getl_s
-putl_b
-putl_0
-putl_1
-putl_s
+getl_s  us
+duput_b ub | .
+duput_s us | .
+putl_b  ub | .
+putl_0     | .
+putl_1     | .
+putl_s  us | .
 
 alloc           #
+free              | o
 getfstatic      # 
 putfstatic      # | .
 invokestatic    # | [.
@@ -38,23 +40,29 @@ alloc_arr         | I.
 getarr            | aI
 putarr            | aI.
 arrlen            | a
-free              | o
 ret               | .
-exit              | .
+exit              | i
 
-goto   z
-if_e   z | .
-if_g   z | .
-if_l   z | .
-if_ne  z | .
-if_ge  z | .
-if_le  z | .
-cmp_e  z | ..
-cmp_g  z | ..
-cmp_l  z | ..
-cmp_ne z | ..
-cmp_ge z | ..
-cmp_le z | ..
+goto    uz
+if_e    uz | .
+if_g    uz | .
+if_l    uz | .
+if_ne   uz | .
+if_ge   uz | .
+if_le   uz | .
+cmp_e      | ..
+cmp_g      | ..
+cmp_l      | ..
+cmp_ne     | ..
+cmp_ge     | ..
+cmp_le     | ..
+goto_s  us
+if_e_s  us | .
+if_g_s  us | .
+if_l_s  us | .
+if_ne_s us | .
+if_ge_s us | .
+if_le_s us | .
 
 add   | ..
 sub   | ..
@@ -80,31 +88,46 @@ lsh   | ..
 rsh   | ..
 lrl   | ..
 rrl   | ..
-lshs  | ..
-rshs  | ..
-lrls  | ..
-rrls  | ..
 
-castz | .
-casts | .
-casti | .
-castl | .
-castf | .
-castd | .
+// TODO: better cast instructions, these won't be used.
+n2z | .
+n2s | .
+n2i | .
+n2l | .
+n2f | .
+n2d | .
 
-z - byte    (8b  int)
-s - short   (16b int)
-i - int     (32b int)
-l - long    (64b int)
-f - float   (single precision)
-d - double  (double precision)
-o - object  (ptr)
-a - array   (ptr)
-I - ints    (z/s/i/l)
-F - floats  (f/d)
-. - any     (I/F/o/a)
-# - constid (16b/32b int)
-u - unsigned <?>
-[ - many     <?>
+f2z | .
+f2s | .
+f2i | .
+f2l | .
+f2d | .
 
-// 88 instructions total
+d2z | .
+d2s | .
+d2i | .
+d2l | .
+d2f | .
+
+// z - byte    (8b  int)
+// s - short   (16b int)
+// i - int     (32b int)
+// l - long    (64b int)
+// f - float   (single precision)
+// d - double  (double precision)
+// o - object  (ptr)
+// a - array   (ptr)
+// I - ints    (z/s/i/l)
+// F - floats  (f/d)
+// . - any     (I/F/o/a)
+// # - constid (16b int)
+// u - unsigned <?>
+// [ - many     <?>
+
+// 102 instructions total
+// for future use:
+//   complex instructions use 2 bytes for the opcode.
+//     comlpex instructions are those whose first byte is >127 (ie. its MSB is 1)
+//   this makes the maximum ammount of distinct instructions `2^(7+8)`, 32_768.
+//   this will never run out of instructions.
+//   this is meant to be a last resort.

@@ -1,0 +1,20 @@
+// commant
+// also a comment, but no longer a comment // message = "Hello, World!";
+println(message);
+
+// transparently wraps a type.
+//    it acts like the unerlying type,
+//    but adds it's own methods.
+// implicitly casts to it's subtype when needed.
+primitive String(value: ubyte[]) {
+    .contains(b: ubyte, beginIndex: uint) bool:
+        loop!(beginIndex < value.length) {
+            breakif (value[beginIndex++] == b) true;
+        } else false
+}
+
+class Confusing {
+    // The only thing the following `:` means is that this method gets inlined
+    call<T, U>(func: fn(T) U, arg: T) U:
+        func(arg)
+}

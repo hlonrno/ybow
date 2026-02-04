@@ -1,0 +1,5 @@
+set -ex
+
+javac -d build src/Main.java
+cd build
+java src.Main

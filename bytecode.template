@@ -1,9 +1,13 @@
-everything is big endian.
+NOTE: everything is big endian.
 
 metadata {
-    u4 file_signature = ".YMB"
+    // yes, this is a reference to java
+    u4 file_signature = "YAVA"
     u2 major_version
     u2 minor_version
+    u64 constpool_offset
+    u64 classdef_offset
+    u64 program_offset
 };
 constpool;
 classes;

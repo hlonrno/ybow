@@ -51,7 +51,7 @@ public class Trie {
         for (var trie : next)
             if (trie.prefix == prefix)
                 return trie.match(pattern, beginIndex + 1);
-        return matches;
+        return false;
     }
 
     @Override

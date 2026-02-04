@@ -1,4 +1,5 @@
 # Ybow
+### (WIP)
 
 Documentation of the language doesn't exist.
 
@@ -7,12 +8,13 @@ Documentation of the language doesn't exist.
 Not many.
 
 ---
+
 ### commands
 
 'ybc' to compile. \
 'ybe' to execute. \
 'yb' as a multiplexer between the two. \
-Will change to only have the yb command (before v1.0.0) and there will be no multiplexing.
+Will change to only have the yb command (before v1.0.0) and there will be no 'multiplexing'.
 
 ## About the structure
 

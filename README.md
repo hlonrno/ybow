@@ -1,5 +1,5 @@
 # Ybow
-### (WIP)
+### (DEAD) Might be continued in some months, or years...
 
 Documentation of the language doesn't exist.
 
